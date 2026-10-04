@@ -1173,6 +1173,15 @@ export function createData(config: CreateDataInput) {
       case "permission.replied":
         removePermission(event.data.sessionID, event.data.requestID)
         return
+      case "form.created":
+        // Session forms are routed by session ID, even without a location.
+        if (event.data.form.sessionID === "global" && !event.location) return
+        if (store.session.form[event.data.form.sessionID]?.some((form) => form.id === event.data.form.id)) return
+        setStore("session", "form", event.data.form.sessionID, [
+          ...(store.session.form[event.data.form.sessionID] ?? []),
+          event.data.form.sessionID === "global" ? { ...event.data.form, location: event.location } : event.data.form,
+        ])
+        return
       case "form.replied":
       case "form.cancelled":
         removeForm(event.data.sessionID, event.data.id, event.location)
@@ -1240,13 +1249,6 @@ export function createData(config: CreateDataInput) {
             },
           },
         }))
-        break
-      case "form.created":
-        if (store.session.form[event.data.form.sessionID]?.some((form) => form.id === event.data.form.id)) break
-        setStore("session", "form", event.data.form.sessionID, [
-          ...(store.session.form[event.data.form.sessionID] ?? []),
-          event.data.form.sessionID === "global" ? { ...event.data.form, location } : event.data.form,
-        ])
         break
       case "shell.created":
         setStore("location", locationKey(location), (data) => ({
